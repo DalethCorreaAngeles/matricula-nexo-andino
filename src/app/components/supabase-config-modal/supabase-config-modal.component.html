@@ -1,0 +1,64 @@
+<div class="modal-backdrop" (click)="onClose()">
+  <div class="modal-dialog" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        <span>Conexión con Supabase</span>
+      </div>
+      <button class="btn-close" (click)="onClose()" title="Cerrar">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <p class="modal-description">
+        Ingresa las credenciales de tu proyecto de Supabase (Project Settings &rarr; API) para conectar "Nexo Andino – Matrícula".
+      </p>
+
+      @if (testResult()) {
+        <div class="alert" [class.alert-success]="testResult()!.success" [class.alert-danger]="!testResult()!.success">
+          <span>{{ testResult()!.message }}</span>
+        </div>
+      }
+
+      <div class="form-group">
+        <label class="form-label" for="supabaseUrl">Project URL</label>
+        <input
+          id="supabaseUrl"
+          type="text"
+          class="form-control"
+          placeholder="https://xyzcompany.supabase.co"
+          [value]="url()"
+          (input)="url.set($any($event.target).value)"
+        />
+        <div class="form-hint">Ejemplo: https://tu-id-de-proyecto.supabase.co</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="supabaseKey">Project API Anon Key (public)</label>
+        <textarea
+          id="supabaseKey"
+          class="form-control"
+          rows="3"
+          placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          [value]="key()"
+          (input)="key.set($any($event.target).value)"
+        ></textarea>
+        <div class="form-hint">Clave pública 'anon' (no requiere clave service_role).</div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" type="button" (click)="clearCredentials()">Limpiar</button>
+      <button class="btn btn-outline" type="button" (click)="onClose()">Cancelar</button>
+      <button class="btn btn-primary" type="button" (click)="saveAndTest()" [disabled]="isTesting()">
+        @if (isTesting()) {
+          <span class="spinner"></span> Conectando...
+        } @else {
+          Guardar y Probar Conexión
+        }
+      </button>
+    </div>
+  </div>
+</div>

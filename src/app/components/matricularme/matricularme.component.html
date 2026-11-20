@@ -1,0 +1,235 @@
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1>Nueva Matrícula</h1>
+      <p>Selecciona un estudiante y una sección con vacantes disponibles.</p>
+    </div>
+    <div>
+      <button class="btn btn-outline" (click)="cargarDatos()" [disabled]="isLoadingData()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [class.spinner]="isLoadingData()">
+          <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+          <path d="M3 3v5h5"></path>
+          <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+          <path d="M16 21h5v-5"></path>
+        </svg>
+        <span>Refrescar Datos</span>
+      </button>
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="alert alert-danger">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <div class="alert-content">
+        <strong>Error de Base de Datos:</strong>
+        <p>{{ errorMessage() }}</p>
+      </div>
+      <button class="btn-close" (click)="errorMessage.set(null)">&times;</button>
+    </div>
+  }
+
+  @if (successMessage()) {
+    <div class="alert alert-success">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      <div class="alert-content">
+        <strong>¡Matrícula Exitosa!</strong>
+        <p>{{ successMessage() }}</p>
+        <div class="alert-actions mt-2">
+          @if (matriculaCreada()) {
+            <a class="btn btn-sm btn-primary" [routerLink]="['/registrar-pago']" [queryParams]="{ matricula: matriculaCreada()!.id_matricula }">
+              Proceder a Registrar Pago &rarr;
+            </a>
+          }
+          <button class="btn btn-sm btn-outline" (click)="nuevaMatricula()">
+            Matricular a otro alumno
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <div class="enrollment-grid">
+    <!-- Form Card -->
+    <div class="card form-card">
+      <div class="card-header">
+        <span class="card-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <line x1="19" x2="19" y1="8" y2="14"></line>
+            <line x1="22" x2="16" y1="11" y2="11"></line>
+          </svg>
+          Formulario de Inscripción
+        </span>
+        <span class="id-badge-info" title="Formato: M + 5 dígitos">
+          Próximo ID: <strong>{{ proximoIdMatricula() }}</strong>
+        </span>
+      </div>
+
+      <form (submit)="$event.preventDefault(); confirmarMatricula()">
+        <!-- Student selection -->
+        <div class="form-group">
+          <label class="form-label" for="estudianteSelect">
+            1. Seleccionar Estudiante:
+            <span class="required">*</span>
+          </label>
+          <select 
+            id="estudianteSelect" 
+            class="form-select"
+            [value]="selectedEstudianteId()"
+            (change)="selectedEstudianteId.set($any($event.target).value)"
+            required
+          >
+            <option value="">-- Elige un estudiante registrado --</option>
+            @for (est of estudiantes(); track est.id_estudiante) {
+              <option [value]="est.id_estudiante">
+                {{ est.apellidos }}, {{ est.nombres }} (DNI: {{ est.dni }})
+              </option>
+            }
+          </select>
+          <div class="form-hint">Lista cargada desde la tabla <code>estudiante</code>.</div>
+        </div>
+
+        <!-- Section selection -->
+        <div class="form-group">
+          <label class="form-label" for="seccionSelect">
+            2. Seleccionar Sección con Vacantes:
+            <span class="required">*</span>
+          </label>
+          <select 
+            id="seccionSelect" 
+            class="form-select"
+            [value]="selectedSeccionId()"
+            (change)="selectedSeccionId.set($any($event.target).value)"
+            required
+          >
+            <option value="">-- Elige una sección disponible --</option>
+            @for (sec of seccionesDisponibles(); track sec.id_seccion) {
+              <option [value]="sec.id_seccion">
+                [{{ sec.id_seccion }}] {{ sec.curso?.nombre || sec.codigo_curso }} &bull; {{ sec.modalidad }} &bull; {{ sec.horario }} &bull; S/ {{ sec.curso?.precio }} (Vacantes: {{ sec.vacantes_disponibles }})
+              </option>
+            }
+          </select>
+          @if (seccionesDisponibles().length === 0 && !isLoadingData()) {
+            <div class="form-hint text-danger">No hay secciones con vacantes disponibles actualmente.</div>
+          } @else {
+            <div class="form-hint">Solo se muestran secciones con vacantes disponibles &gt; 0.</div>
+          }
+        </div>
+
+        <div class="form-actions">
+          <button 
+            type="submit" 
+            class="btn btn-primary btn-block" 
+            [disabled]="isSubmitting() || !selectedEstudianteId() || !selectedSeccionId()"
+          >
+            @if (isSubmitting()) {
+              <span class="spinner"></span> Registrando Matrícula...
+            } @else {
+              Confirmar Matrícula (Estado: PENDIENTE)
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Preview / Summary Card -->
+    <div class="card summary-card">
+      <div class="card-header">
+        <span class="card-title">Resumen de la Inscripción</span>
+      </div>
+
+      <div class="summary-body">
+        <!-- Student preview -->
+        <div class="summary-section">
+          <div class="summary-section-title">Datos del Estudiante</div>
+          @if (estudianteSeleccionado(); as est) {
+            <div class="info-block">
+              <div class="info-row">
+                <span class="info-label">ID Estudiante:</span>
+                <span class="info-val font-mono">{{ est.id_estudiante }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Nombre Completo:</span>
+                <span class="info-val font-semibold">{{ est.nombres }} {{ est.apellidos }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">DNI:</span>
+                <span class="info-val">{{ est.dni }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Correo:</span>
+                <span class="info-val">{{ est.correo }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Teléfono:</span>
+                <span class="info-val">{{ est.telefono }}</span>
+              </div>
+            </div>
+          } @else {
+            <p class="placeholder-text">Ningún estudiante seleccionado.</p>
+          }
+        </div>
+
+        <!-- Section / Course preview -->
+        <div class="summary-section mt-3">
+          <div class="summary-section-title">Datos del Curso y Sección</div>
+          @if (seccionSeleccionada(); as sec) {
+            <div class="info-block">
+              <div class="info-row">
+                <span class="info-label">Sección ID:</span>
+                <span class="info-val font-mono">{{ sec.id_seccion }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Curso:</span>
+                <span class="info-val font-semibold">{{ sec.curso?.nombre }} ({{ sec.codigo_curso }})</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Modalidad:</span>
+                <span class="info-val">
+                  <span class="badge" [class.badge-presencial]="sec.modalidad === 'PRESENCIAL'" [class.badge-virtual]="sec.modalidad === 'VIRTUAL'">
+                    {{ sec.modalidad }}
+                  </span>
+                </span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Horario:</span>
+                <span class="info-val">{{ sec.horario }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Docente:</span>
+                <span class="info-val">{{ sec.docente?.nombres }} {{ sec.docente?.apellidos }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Vacantes Disponibles:</span>
+                <span class="info-val">
+                  <span class="badge badge-disponible">{{ sec.vacantes_disponibles }} restantes</span>
+                </span>
+              </div>
+            </div>
+          } @else {
+            <p class="placeholder-text">Ninguna sección seleccionada.</p>
+          }
+        </div>
+
+        <!-- Price total preview -->
+        <div class="total-box">
+          <div class="total-label">Monto Total a Pagar:</div>
+          <div class="total-amount">
+            S/ {{ montoTotal() | number:'1.2-2' }}
+          </div>
+          <div class="total-note">
+            El monto se asigna según el precio oficial del curso y quedará en estado <strong>PENDIENTE</strong>.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

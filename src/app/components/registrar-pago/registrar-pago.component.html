@@ -1,0 +1,274 @@
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1>Registrar Pago</h1>
+      <p>Registra el comprobante de pago para una matrícula pendiente.</p>
+    </div>
+    <div>
+      <button class="btn btn-outline" (click)="cargarDatos()" [disabled]="isLoadingData()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [class.spinner]="isLoadingData()">
+          <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+          <path d="M3 3v5h5"></path>
+          <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+          <path d="M16 21h5v-5"></path>
+        </svg>
+        <span>Refrescar</span>
+      </button>
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="alert alert-danger">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <div class="alert-content">
+        <strong>Error en Registro de Pago:</strong>
+        <p>{{ errorMessage() }}</p>
+      </div>
+      <button class="btn-close" (click)="errorMessage.set(null)">&times;</button>
+    </div>
+  }
+
+  @if (successMessage()) {
+    <div class="alert alert-success">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      <div class="alert-content">
+        <strong>¡Pago Registrado!</strong>
+        <p>{{ successMessage() }}</p>
+        <div class="alert-actions mt-2">
+          <a routerLink="/panel-asesor" class="btn btn-sm btn-primary">
+            Ir al Panel del Asesor para Validar &rarr;
+          </a>
+          <button class="btn btn-sm btn-outline" (click)="nuevoPago()">
+            Registrar otro pago
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <div class="payment-grid">
+    <!-- Form Card -->
+    <div class="card form-card">
+      <div class="card-header">
+        <span class="card-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect width="20" height="14" x="2" y="5" rx="2"></rect>
+            <line x1="2" x2="22" y1="10" y2="10"></line>
+          </svg>
+          Comprobante de Pago
+        </span>
+        <span class="id-badge-info" title="Formato: P + 5 dígitos">
+          Próximo ID: <strong>{{ proximoIdPago() }}</strong>
+        </span>
+      </div>
+
+      <form (submit)="$event.preventDefault(); procesarPago()">
+        <!-- Pending Enrollment Selection -->
+        <div class="form-group">
+          <label class="form-label" for="matriculaSelect">
+            1. Matrícula Pendiente de Pago:
+            <span class="required">*</span>
+          </label>
+          <select 
+            id="matriculaSelect" 
+            class="form-select"
+            [value]="selectedMatriculaId()"
+            (change)="selectedMatriculaId.set($any($event.target).value)"
+            required
+          >
+            <option value="">-- Selecciona una matrícula pendiente --</option>
+            @for (mat of matriculasPendientes(); track mat.id_matricula) {
+              <option [value]="mat.id_matricula">
+                [{{ mat.id_matricula }}] {{ mat.estudiante?.apellidos }}, {{ mat.estudiante?.nombres }} &bull; {{ mat.curso?.nombre || mat.seccion?.codigo_curso }} &bull; S/ {{ mat.monto_total }}
+              </option>
+            }
+          </select>
+          @if (matriculasPendientes().length === 0 && !isLoadingData()) {
+            <div class="form-hint text-warning">
+              No hay matrículas en estado PENDIENTE. Si necesitas una matrícula, <a routerLink="/matricularme">créala aquí</a>.
+            </div>
+          } @else {
+            <div class="form-hint">Solo se muestran matrículas con estado 'PENDIENTE'.</div>
+          }
+        </div>
+
+        <!-- Payment Method Selection -->
+        <div class="form-group">
+          <label class="form-label">
+            2. Método de Pago:
+            <span class="required">*</span>
+          </label>
+          <div class="method-selector">
+            @for (m of metodosDisponibles; track m) {
+              <button
+                type="button"
+                class="method-btn"
+                [class.selected]="selectedMetodo() === m"
+                (click)="setMetodo(m)"
+              >
+                @if (m === 'TRANSFERENCIA') {
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z"></path>
+                    <path d="m9 12 2 2 4-4"></path>
+                  </svg>
+                } @else if (m === 'TARJETA') {
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect width="20" height="14" x="2" y="5" rx="2"></rect>
+                    <line x1="2" x2="22" y1="10" y2="10"></line>
+                  </svg>
+                } @else if (m === 'BILLETERA') {
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path>
+                    <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path>
+                  </svg>
+                } @else {
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" x2="12" y1="2" y2="22"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                  </svg>
+                }
+                <span>{{ m }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Operation Number -->
+        <div class="form-group">
+          <label class="form-label" for="nroOpInput">
+            3. Número / Código de Operación:
+            <span class="required">*</span>
+          </label>
+          <input
+            id="nroOpInput"
+            type="text"
+            class="form-control"
+            placeholder="Ej: OP-893452, BCP-10293, etc."
+            [value]="nroOperacion()"
+            (input)="nroOperacion.set($any($event.target).value)"
+            required
+          />
+          <div class="form-hint">Referencia emitida por el banco o billetera digital.</div>
+        </div>
+
+        <!-- Read-only Amount & State -->
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">Monto del Pago:</label>
+            <input
+              type="text"
+              class="form-control font-bold"
+              [value]="'S/ ' + (montoAPagar() | number:'1.2-2')"
+              readonly
+            />
+            <div class="form-hint">Igual al monto_total de la matrícula.</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Estado Inicial del Pago:</label>
+            <input
+              type="text"
+              class="form-control font-bold"
+              value="REGISTRADO"
+              readonly
+            />
+            <div class="form-hint">Se valida posteriormente por el asesor.</div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button 
+            type="submit" 
+            class="btn btn-primary btn-block"
+            [disabled]="isSubmitting() || !selectedMatriculaId() || !nroOperacion().trim()"
+          >
+            @if (isSubmitting()) {
+              <span class="spinner"></span> Registrando Pago...
+            } @else {
+              Registrar Pago (Estado: REGISTRADO)
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Summary Details Card -->
+    <div class="card summary-card">
+      <div class="card-header">
+        <span class="card-title">Detalles de la Matrícula a Pagar</span>
+      </div>
+
+      <div class="summary-body">
+        @if (matriculaSeleccionada(); as mat) {
+          <div class="info-block">
+            <div class="info-row">
+              <span class="info-label">ID Matrícula:</span>
+              <span class="info-val font-mono font-bold">{{ mat.id_matricula }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Fecha Registro:</span>
+              <span class="info-val">{{ mat.fecha_registro | date:'medium' }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Estado Actual:</span>
+              <span class="info-val">
+                <span class="badge badge-pendiente">{{ mat.estado }}</span>
+              </span>
+            </div>
+            <div class="divider"></div>
+            <div class="info-row">
+              <span class="info-label">Estudiante:</span>
+              <span class="info-val font-semibold">
+                {{ mat.estudiante?.nombres }} {{ mat.estudiante?.apellidos }}
+              </span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">DNI Estudiante:</span>
+              <span class="info-val">{{ mat.estudiante?.dni }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Correo:</span>
+              <span class="info-val">{{ mat.estudiante?.correo }}</span>
+            </div>
+            <div class="divider"></div>
+            <div class="info-row">
+              <span class="info-label">Curso:</span>
+              <span class="info-val font-semibold">{{ mat.curso?.nombre }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Sección:</span>
+              <span class="info-val font-mono">{{ mat.id_seccion }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Modalidad:</span>
+              <span class="info-val">{{ mat.seccion?.modalidad }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Horario:</span>
+              <span class="info-val">{{ mat.seccion?.horario }}</span>
+            </div>
+          </div>
+
+          <div class="payment-highlight">
+            <div class="highlight-title">Total a Cobrar</div>
+            <div class="highlight-amount">S/ {{ mat.monto_total | number:'1.2-2' }}</div>
+          </div>
+        } @else {
+          <div class="empty-selection">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect width="20" height="14" x="2" y="5" rx="2"></rect>
+              <line x1="2" x2="22" y1="10" y2="10"></line>
+            </svg>
+            <p>Selecciona una matrícula de la lista izquierda para previsualizar los detalles y monto a pagar.</p>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>

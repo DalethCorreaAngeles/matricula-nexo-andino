@@ -1,0 +1,290 @@
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1>Panel del Asesor</h1>
+      <p>Gestión y validación de matrículas y pagos en tiempo real.</p>
+    </div>
+    <div>
+      <button class="btn btn-outline" (click)="cargarMatriculas()" [disabled]="isLoading()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [class.spinner]="isLoading()">
+          <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+          <path d="M3 3v5h5"></path>
+          <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path>
+          <path d="M16 21h5v-5"></path>
+        </svg>
+        <span>Refrescar Panel</span>
+      </button>
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="alert alert-danger">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <div class="alert-content">
+        <strong>Error:</strong>
+        <p>{{ errorMessage() }}</p>
+      </div>
+      <button class="btn-close" (click)="errorMessage.set(null)">&times;</button>
+    </div>
+  }
+
+  @if (successMessage()) {
+    <div class="alert alert-success">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      <div class="alert-content">
+        <strong>Acción Realizada:</strong>
+        <p>{{ successMessage() }}</p>
+      </div>
+      <button class="btn-close" (click)="successMessage.set(null)">&times;</button>
+    </div>
+  }
+
+  <!-- Stats Grid -->
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <span class="metric-title">Total Matrículas</span>
+      <span class="metric-value">{{ totalMatriculas() }}</span>
+      <span class="metric-subtitle">Registros en sistema</span>
+    </div>
+    <div class="metric-card warning-border">
+      <span class="metric-title">Pendientes</span>
+      <span class="metric-value text-warning">{{ totalPendientes() }}</span>
+      <span class="metric-subtitle">Esperando validación</span>
+    </div>
+    <div class="metric-card success-border">
+      <span class="metric-title">Confirmadas</span>
+      <span class="metric-value text-success">{{ totalConfirmadas() }}</span>
+      <span class="metric-subtitle">Matrículas activas</span>
+    </div>
+    <div class="metric-card danger-border">
+      <span class="metric-title">Anuladas</span>
+      <span class="metric-value text-danger">{{ totalAnuladas() }}</span>
+      <span class="metric-subtitle">Inscripciones canceladas</span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-title">Monto Confirmado</span>
+      <span class="metric-value text-primary">S/ {{ montoConfirmado() | number:'1.2-2' }}</span>
+      <span class="metric-subtitle">Ingresos validados</span>
+    </div>
+  </div>
+
+  <!-- Filter & Search Bar -->
+  <div class="card filter-card">
+    <div class="filter-controls">
+      <div class="filter-group">
+        <label class="filter-label">Estado de Matrícula:</label>
+        <div class="segmented-control">
+          <button 
+            type="button" 
+            class="seg-btn" 
+            [class.active]="filtroEstado() === 'TODAS'" 
+            (click)="setEstado('TODAS')">
+            Todas ({{ totalMatriculas() }})
+          </button>
+          <button 
+            type="button" 
+            class="seg-btn" 
+            [class.active]="filtroEstado() === 'PENDIENTE'" 
+            (click)="setEstado('PENDIENTE')">
+            Pendientes ({{ totalPendientes() }})
+          </button>
+          <button 
+            type="button" 
+            class="seg-btn" 
+            [class.active]="filtroEstado() === 'CONFIRMADA'" 
+            (click)="setEstado('CONFIRMADA')">
+            Confirmadas ({{ totalConfirmadas() }})
+          </button>
+          <button 
+            type="button" 
+            class="seg-btn" 
+            [class.active]="filtroEstado() === 'ANULADA'" 
+            (click)="setEstado('ANULADA')">
+            Anuladas ({{ totalAnuladas() }})
+          </button>
+        </div>
+      </div>
+
+      <div class="search-group">
+        <label class="filter-label">Buscar por Estudiante, DNI o Curso:</label>
+        <div class="search-input-wrapper">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
+          <input
+            type="text"
+            class="form-control search-input"
+            placeholder="Buscar en panel..."
+            [value]="filtroBusqueda()"
+            (input)="filtroBusqueda.set($any($event.target).value)"
+          />
+          @if (filtroBusqueda()) {
+            <button class="clear-search-btn" (click)="filtroBusqueda.set('')">&times;</button>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enrollments Table -->
+  <div class="card p-0">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID / Fecha</th>
+            <th>Estudiante</th>
+            <th>Curso / Sección</th>
+            <th>Monto</th>
+            <th>Detalle del Pago</th>
+            <th>Estado Matrícula</th>
+            <th class="text-right">Acciones del Asesor</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (isLoading()) {
+            <tr>
+              <td colspan="7" class="text-center py-5">
+                <div class="loading-box">
+                  <span class="spinner"></span>
+                  <span>Cargando matrículas desde Supabase...</span>
+                </div>
+              </td>
+            </tr>
+          } @else if (matriculasFiltradas().length === 0) {
+            <tr>
+              <td colspan="7">
+                <div class="empty-state">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path>
+                    <path d="m9 12 2 2 4-4"></path>
+                  </svg>
+                  <h3>No hay matrículas registradas</h3>
+                  <p>No se encontraron registros de matrícula con el filtro aplicado.</p>
+                </div>
+              </td>
+            </tr>
+          } @else {
+            @for (mat of matriculasFiltradas(); track mat.id_matricula) {
+              <tr [class.row-anulada]="mat.estado === 'ANULADA'" [class.row-confirmada]="mat.estado === 'CONFIRMADA'">
+                <td>
+                  <span class="id-badge">{{ mat.id_matricula }}</span>
+                  <div class="sub-text font-mono">
+                    {{ mat.fecha_registro | date:'dd/MM/yyyy HH:mm' }}
+                  </div>
+                </td>
+                <td>
+                  @if (mat.estudiante) {
+                    <div class="student-name">{{ mat.estudiante.apellidos }}, {{ mat.estudiante.nombres }}</div>
+                    <div class="sub-text">
+                      <span>DNI: {{ mat.estudiante.dni }}</span>
+                      @if (mat.estudiante.telefono) {
+                        <span> &bull; Tel: {{ mat.estudiante.telefono }}</span>
+                      }
+                    </div>
+                  } @else {
+                    <span class="font-mono text-muted">ID: {{ mat.id_estudiante }}</span>
+                  }
+                </td>
+                <td>
+                  <div class="course-name">{{ mat.curso?.nombre || mat.seccion?.codigo_curso }}</div>
+                  <div class="sub-text">
+                    <span class="badge badge-sm" [class.badge-presencial]="mat.seccion?.modalidad === 'PRESENCIAL'" [class.badge-virtual]="mat.seccion?.modalidad === 'VIRTUAL'">
+                      {{ mat.seccion?.modalidad }}
+                    </span>
+                    <span> Sec: {{ mat.id_seccion }}</span>
+                    @if (mat.seccion?.horario) {
+                      <span> &bull; {{ mat.seccion?.horario }}</span>
+                    }
+                  </div>
+                </td>
+                <td>
+                  <div class="price-val font-semibold">
+                    S/ {{ mat.monto_total | number:'1.2-2' }}
+                  </div>
+                </td>
+                <td>
+                  @if (mat.pago) {
+                    <div class="payment-info">
+                      <div class="pago-header">
+                        <span class="id-pago-tag">{{ mat.pago.id_pago }}</span>
+                        <span class="badge" [class.badge-validado]="mat.pago.estado_pago === 'VALIDADO'" [class.badge-registrado]="mat.pago.estado_pago === 'REGISTRADO'">
+                          {{ mat.pago.estado_pago }}
+                        </span>
+                      </div>
+                      <div class="sub-text">
+                        <strong>{{ mat.pago.metodo }}</strong> &bull; Op: {{ mat.pago.nro_operacion }}
+                      </div>
+                    </div>
+                  } @else {
+                    <span class="badge badge-unpaid">Sin pago</span>
+                  }
+                </td>
+                <td>
+                  @if (mat.estado === 'PENDIENTE') {
+                    <span class="badge badge-pendiente">Pendiente</span>
+                  } @else if (mat.estado === 'CONFIRMADA') {
+                    <span class="badge badge-confirmada">Confirmada</span>
+                  } @else if (mat.estado === 'ANULADA') {
+                    <span class="badge badge-anulada">Anulada</span>
+                  } @else {
+                    <span class="badge">{{ mat.estado }}</span>
+                  }
+                </td>
+                <td class="text-right">
+                  <div class="action-buttons">
+                    <!-- Button Validar pago y confirmar -->
+                    @if (mat.estado !== 'CONFIRMADA' && mat.estado !== 'ANULADA') {
+                      <button 
+                        class="btn btn-sm btn-success"
+                        (click)="validarPagoYConfirmar(mat)"
+                        [disabled]="actionProcessingId() === mat.id_matricula"
+                        title="Actualiza el pago a 'VALIDADO' y la matrícula a 'CONFIRMADA'"
+                      >
+                        @if (actionProcessingId() === mat.id_matricula) {
+                          <span class="spinner"></span>
+                        } @else {
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                        }
+                        <span>Validar pago y confirmar</span>
+                      </button>
+                    }
+
+                    <!-- Button Anular -->
+                    @if (mat.estado !== 'ANULADA') {
+                      <button 
+                        class="btn btn-sm btn-outline btn-anular"
+                        (click)="anularMatricula(mat)"
+                        [disabled]="actionProcessingId() === mat.id_matricula"
+                        title="Actualiza la matrícula a 'ANULADA'"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="15" y1="9" x2="9" y2="15"></line>
+                          <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                        <span>Anular</span>
+                      </button>
+                    } @else {
+                      <span class="text-muted text-sm font-italic">Anulada</span>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
