@@ -32,29 +32,6 @@ Aplicación web desarrollada en **Angular** conectada a **Supabase** para la ges
 
 ---
 
-## 🛠️ Configuración de Supabase
-
-Puedes configurar tus credenciales de dos formas:
-
-### Opción 1: Directamente desde la Interfaz Web (Recomendada)
-Al iniciar la aplicación, haz clic en el botón superior derecho **"Configurar BD"** o en el banner superior para ingresar tu:
-- **Project URL** (ej: `https://xyzproject.supabase.co`)
-- **Project Anon Key** (clave pública `anon`)
-
-Se guardará localmente y probará la conexión de inmediato sin necesidad de recompilar.
-
-### Opción 2: En el archivo `src/environments/environment.ts`
-Edita el archivo [environment.ts](file:///c:/Users/dalet/Documents/Leguaje%20de%20programacion/src/environments/environment.ts):
-```typescript
-export const environment = {
-  production: false,
-  supabaseUrl: 'https://TU-PROYECTO.supabase.co',
-  supabaseKey: 'TU-ANON-KEY-DE-SUPABASE'
-};
-```
-
----
-
 ## 🚀 Cómo Ejecutar la Aplicación
 
 Para iniciar el servidor de desarrollo de Angular:
