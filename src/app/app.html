@@ -1,28 +1,6 @@
 <div class="app-layout">
   <!-- Top Navigation Bar -->
-  <app-navbar (openConfig)="openConfig()"></app-navbar>
-
-  <!-- Global Supabase banner if not connected -->
-  @if (!supabaseService.isConnected()) {
-    <div class="db-alert-banner">
-      <div class="container banner-inner">
-        <div class="banner-message">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-          <span>
-            <strong>Conexión con Supabase requerida:</strong> 
-            Ingresa tu Project URL y Anon Key para consultar y registrar datos en tiempo real.
-          </span>
-        </div>
-        <button class="btn btn-sm btn-primary" (click)="openConfig()">
-          Configurar Supabase Ahora
-        </button>
-      </div>
-    </div>
-  }
+  <app-navbar></app-navbar>
 
   <!-- Main View Area -->
   <main class="main-content">
@@ -41,9 +19,4 @@
       </div>
     </div>
   </footer>
-
-  <!-- Supabase Credentials Modal -->
-  @if (showConfigModal()) {
-    <app-supabase-config-modal (close)="closeConfig()"></app-supabase-config-modal>
-  }
 </div>

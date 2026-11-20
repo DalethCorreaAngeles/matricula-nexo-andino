@@ -56,20 +56,5 @@
         </a>
       </li>
     </ul>
-
-    <div class="nav-actions">
-      <button 
-        class="db-status-btn"
-        [class.connected]="supabaseService.isConnected()"
-        [class.disconnected]="!supabaseService.isConnected()"
-        (click)="onOpenConfig()"
-        title="Configurar Supabase"
-      >
-        <span class="status-indicator"></span>
-        <span class="status-text">
-          {{ supabaseService.isConnected() ? 'Supabase Conectado' : 'Configurar BD' }}
-        </span>
-      </button>
-    </div>
   </div>
 </nav>
